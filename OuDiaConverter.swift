@@ -1,5 +1,6 @@
 import Foundation
 
+//データ例
 let exampleOudText = """
 FileType=OuDia.1.02
 Rosen.
