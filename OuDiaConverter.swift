@@ -103,17 +103,18 @@ JikokuhyouRessyaWidth=5
 FileTypeAppComment=OuDia Ver. 1.02.05
 """
 
+//使用例
 let oudData = OuDia.parse(exampleOudText)
+print(oudData)
+print("---")
+let oudText = OuDia.stringify(oudData)
+print(oudText)
+print("---")
 print(oudData.rosen.dia[0].kudari.ressya[0].ekiJikoku)
 print(oudData.rosen.eki[0].ekimei)
-print("---")
-print(oudData)
-
-let oudText = OuDia.stringify(oudData)
-print("---")
-print(oudText)
 
 class OuDia {
+    //文字列→構造体
     static func parse(_ text: String) -> OudData {
         
         var kudariRessya: [[Ressya]] = [[Ressya(houkou: "", syubetsu: "", ressyabangou: "", ressyamei: "", gousuu: "", ekiJikoku: [], bikou: "")]]
@@ -395,6 +396,7 @@ class OuDia {
         return oudData
     }
     
+    //構造体→文字列
     static func stringify(_ data: OudData) -> String {
         var result: String = ""
         result.append("FileType=\(data.fileType)\n") //OudDataの情報を順番に追加していく
@@ -499,12 +501,13 @@ class OuDia {
         result.append("EkimeiLength=\(data.dispProp.ekimeiLength)\n")
         result.append("JikokuhyouRessyaWidth=\(data.dispProp.jikokuhyouRessyaWidth)\n")
         result.append(".\n") //DispProp End
-        result.append("FileTypeAppComment=" + "Diagram Editor Ver. Aplha 1.0.0" + "\n") //ここは各Appが名付ける要素
+        result.append("FileTypeAppComment=" + "Diagram Editor Ver. Aplha 1.0.0") //ここは各Appが名付ける要素
         
         return result
     }
 }
 
+//EkiJikokuのパース/文字列化
 class EkiJikoku {
     static func parse(_ text: String) -> Array<String> {
         var result: Array<String> = []
@@ -522,8 +525,7 @@ class EkiJikoku {
     }
 }
 
-//ここから下はオブジェクトの定義
-
+//構造体の定義
 struct OudData {
     var fileType: String
     let rosen: Rosen
