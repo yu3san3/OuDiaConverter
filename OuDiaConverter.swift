@@ -114,426 +114,441 @@ print(oudData.rosen.dia[0].kudari.ressya[0].ekiJikoku)
 print(oudData.rosen.eki[0].ekimei)
 
 class OuDia {
-    //文字列→構造体
+    //MARK: - 文字列→構造体
     static func parse(_ text: String) -> OudData {
-        
-        var kudariRessya: [[Ressya]] = [[Ressya(houkou: "", syubetsu: "", ressyabangou: "", ressyamei: "", gousuu: "", ekiJikoku: [], bikou: "")]]
-        var noboriRessya: [[Ressya]] = [[Ressya(houkou: "", syubetsu: "", ressyabangou: "", ressyamei: "", gousuu: "", ekiJikoku: [], bikou: "")]]
-        
-        var isKudari: Bool = false //どの構成要素を処理しているか示すBool
-        var isNobori: Bool = false
-        var isRessya: Bool = false
-        
-        var diaCount: Int = 0 //Dia.の数を数える
-        
-        var kudariTarget: Int = 0 //配列内の編集すべきインデックスを示す
-        var noboriTarget: Int = 0
-        
+        enum ProcessState {
+            case none
+            case kudari
+            case nobori
+        }
+
+        //このoudDataプロパティに値が代入、追加されていく
+        var oudData = OudData(fileType: "",
+                              rosen: Rosen(rosenmei: "",
+                                           eki: [],
+                                           ressyasyubetsu: [],
+                                           dia: [],
+                                           kitenJikoku: "",
+                                           diagramDgrYZahyouKyoriDefault: "",
+                                           comment: ""
+                                          ),
+                              dispProp: DispProp(jikokuhyouFont: [],
+                                                 jikokuhyouVFont: "",
+                                                 diaEkimeiFont: "",
+                                                 diaJikokuFont: "",
+                                                 diaRessyaFont: "",
+                                                 commentFont: "",
+                                                 diaMojiColor: "",
+                                                 diaHaikeiColor: "",
+                                                 diaRessyaColor: "",
+                                                 diaJikuColor: "",
+                                                 ekimeiLength: "",
+                                                 jikokuhyouRessyaWidth: ""
+                                                ),
+                              fileTypeAppComment: ""
+        )
+
+        var isRessya = false
+        var processingHoukouState: ProcessState = .none //どの構成要素を処理しているかを示す
+
         for lineRow in text.components(separatedBy: .newlines) { //textを1行づつ処理
             let line: String = lineRow.trimmingCharacters(in: .whitespaces) //行の端にある空白を削除
-            if line == "" {
+            if line.isEmpty {
                 continue
             } else if line == "." { //行がピリオドの場合
-                if isRessya {
-                    isRessya = false
-                } else {
-                    if isKudari {
-                        isKudari = false
-                    }
-                    if isNobori {
-                        isNobori = false
-                    }
-                }
+                resetProcessingDiaState()
             } else if line.hasSuffix(".") { //行がピリオドで終わっている場合
-                let type: String = String(line.dropLast())
-                switch type {
-                case "Dia":
-                    diaCount += 1 //typeがDia.である場合を数える
-                    kudariRessya.append([Ressya(houkou: "", syubetsu: "", ressyabangou: "", ressyamei: "", gousuu: "", ekiJikoku: [], bikou: "")]) //空の要素をひとつ追加
-                    noboriRessya.append([Ressya(houkou: "", syubetsu: "", ressyabangou: "", ressyamei: "", gousuu: "", ekiJikoku: [], bikou: "")])
-                    kudariTarget = (kudariRessya.endIndex-1)-1
-                    noboriTarget = (noboriRessya.endIndex-1)-1
-                case "Kudari":
-                    isKudari = true //Kudari.の処理中であることを示すBool
-                case "Nobori":
-                    isNobori = true
-                case "Ressya":
-                    isRessya = true
-                    if isKudari {
-                        kudariRessya[kudariTarget].append(Ressya(houkou: "", syubetsu: "", ressyabangou: "", ressyamei: "", gousuu: "", ekiJikoku: [], bikou: "")) //空の要素をひとつ追加
-                    }
-                    if isNobori {
-                        noboriRessya[noboriTarget].append(Ressya(houkou: "", syubetsu: "", ressyabangou: "", ressyamei: "", gousuu: "", ekiJikoku: [], bikou: ""))
-                    }
-                default:
-                    break
-                }
+                handleScopeEntry(line: line)
             } else if line.contains("=") { // 行にイコールが含まれている場合
-                var keyAndValue: [String] = line.components(separatedBy: "=")
-                let key: String = keyAndValue.removeFirst() //イコールの左側
-                let value: String = keyAndValue.joined(separator: "=") //イコールの右側
-                let kudariRessyaCount: Int = (kudariRessya[kudariTarget].endIndex-1)-1 //配列内の編集すべきインデックスを示す
-                let noboriRessyaCount: Int = (noboriRessya[noboriTarget].endIndex-1)-1
-                switch key {
-                case "Houkou":
-                    if isKudari {
-                        kudariRessya[kudariTarget][kudariRessyaCount].houkou = value
-                    }
-                    if isNobori {
-                        noboriRessya[noboriTarget][noboriRessyaCount].houkou = value
-                    }
-                case "Syubetsu":
-                    if isKudari {
-                        kudariRessya[kudariTarget][kudariRessyaCount].syubetsu = value
-                    }
-                    if isNobori {
-                        noboriRessya[noboriTarget][noboriRessyaCount].syubetsu = value
-                    }
-                case "Ressyabangou":
-                    if isKudari {
-                        kudariRessya[kudariTarget][kudariRessyaCount].ressyabangou = value
-                    }
-                    if isNobori {
-                        noboriRessya[noboriTarget][noboriRessyaCount].ressyabangou = value
-                    }
-                case "Ressyamei":
-                    if isKudari {
-                        kudariRessya[kudariTarget][kudariRessyaCount].ressyamei = value
-                    }
-                    if isNobori {
-                        noboriRessya[noboriTarget][noboriRessyaCount].ressyamei = value
-                    }
-                case "Gousuu":
-                    if isKudari {
-                        kudariRessya[kudariTarget][kudariRessyaCount].gousuu = value
-                    }
-                    if isNobori {
-                        noboriRessya[noboriTarget][noboriRessyaCount].gousuu = value
-                    }
-                case "EkiJikoku":
-                    if isKudari {
-                        kudariRessya[kudariTarget][kudariRessyaCount].ekiJikoku = EkiJikoku.parse(value) //String -> [String]に変換して代入
-                    }
-                    if isNobori {
-                        noboriRessya[noboriTarget][noboriRessyaCount].ekiJikoku = EkiJikoku.parse(value)
-                    }
-                case "Bikou":
-                    if isKudari {
-                        kudariRessya[kudariTarget][kudariRessyaCount].bikou = value
-                    }
-                    if isNobori {
-                        noboriRessya[noboriTarget][noboriRessyaCount].bikou = value
-                    }
-                default:
-                    break
-                }
+                setValueFromKey(line: line)
             }
         }
-        kudariRessya.removeLast() //余分な空の要素を削除
-        noboriRessya.removeLast()
-        for i in 0..<kudariRessya.count {
-            kudariRessya[i].removeLast() //余分な空の要素を削除
-        }
-        for i in 0..<noboriRessya.count {
-            noboriRessya[i].removeLast()
-        }
-        
-        var kudari: [Kudari] = []
-        var nobori: [Nobori] = []
-        
-        for i in 0..<diaCount { //Dia.の数だけ配列の要素が増える
-            kudari.append(Kudari(ressya: kudariRessya[i]))
-        }
-        for i in 0..<diaCount {
-            nobori.append(Nobori(ressya: noboriRessya[i]))
-        }
-        
-        var dia: [Dia] = []
-        
-        for i in 0..<diaCount {
-            dia.append(Dia(diaName: "", kudari: kudari[i], nobori: nobori[i]))
-        }
-        
-        var ressyasyubetsu: [Ressyasyubetsu] = [Ressyasyubetsu(syubetsumei: "", ryakusyou: "", jikokuhyouMojiColor: "", jikokuhyouFontIndex: "", diagramSenColor: "", diagramSenStyle: "", diagramSenIsBold: "", stopMarkDrawType: "")]
-        var eki: [Eki] = [Eki(ekimei: "", ekijikokukeisiki: "", ekikibo: "", kyoukaisen: "", diagramRessyajouhouHyoujiKudari: "", diagramRessyajouhouHyoujiNobori: "")]
-        
-        var diaTarget: Int = 0 //配列内の編集すべきインデックスを示す
-        
-        for lineRow in text.components(separatedBy: .newlines) {
-            let line: String = lineRow.trimmingCharacters(in: .whitespaces)
-            if line == "" {
-                continue
-            } else if line.hasSuffix(".") {
-                let type: String = String(line.dropLast())
-                switch type {
-                case "Eki":
-                    eki.append(Eki(ekimei: "", ekijikokukeisiki: "", ekikibo: "", kyoukaisen: "", diagramRessyajouhouHyoujiKudari: "", diagramRessyajouhouHyoujiNobori: ""))
-                case "Ressyasyubetsu":
-                    ressyasyubetsu.append(Ressyasyubetsu(syubetsumei: "", ryakusyou: "", jikokuhyouMojiColor: "", jikokuhyouFontIndex: "", diagramSenColor: "", diagramSenStyle: "", diagramSenIsBold: "", stopMarkDrawType: ""))
-                case "Dia":
-                    break
-                default:
-                    break
-                }
-            } else if line.contains("=") {
-                var keyAndValue: [String] = line.components(separatedBy: "=")
-                let key: String = keyAndValue.removeFirst()
-                let value: String = keyAndValue.joined(separator: "=")
-                let ekiTarget: Int = (eki.endIndex-1)-1 //配列内の編集すべきインデックスを示す
-                let ressyasyubetsuTarget: Int = (ressyasyubetsu.endIndex-1)-1
-                switch key {
-                case "Ekimei":
-                    eki[ekiTarget].ekimei = value
-                case "Ekijikokukeisiki":
-                    eki[ekiTarget].ekijikokukeisiki = value
-                case "Ekikibo":
-                    eki[ekiTarget].ekikibo = value
-                case "Kyoukaisen":
-                    eki[ekiTarget].kyoukaisen = value
-                case "DiagramRessyajouhouHyoujiKudari":
-                    eki[ekiTarget].diagramRessyajouhouHyoujiKudari = value
-                case "DiagramRessyajouhouHyoujiNobori":
-                    eki[ekiTarget].diagramRessyajouhouHyoujiNobori = value
-                case "Syubetsumei":
-                    ressyasyubetsu[ressyasyubetsuTarget].syubetsumei = value
-                case "Ryakusyou":
-                    ressyasyubetsu[ressyasyubetsuTarget].ryakusyou = value
-                case "JikokuhyouMojiColor":
-                    ressyasyubetsu[ressyasyubetsuTarget].jikokuhyouMojiColor = value
-                case "JikokuhyouFontIndex":
-                    ressyasyubetsu[ressyasyubetsuTarget].jikokuhyouFontIndex = value
-                case "DiagramSenColor":
-                    ressyasyubetsu[ressyasyubetsuTarget].diagramSenColor = value
-                case "DiagramSenStyle":
-                    ressyasyubetsu[ressyasyubetsuTarget].diagramSenStyle = value
-                case "DiagramSenIsBold":
-                    ressyasyubetsu[ressyasyubetsuTarget].diagramSenIsBold = value
-                case "StopMarkDrawType":
-                    ressyasyubetsu[ressyasyubetsuTarget].stopMarkDrawType = value
-                case "DiaName":
-                    dia[diaTarget].diaName = value
-                    diaTarget += 1 //DiaName=〇〇の回数を数えるInt
-                default:
-                    break
-                }
-            }
-        }
-        eki.removeLast() //余分な空の要素を削除
-        ressyasyubetsu.removeLast()
-        //kudariressyaやnoboriressya, diaの配列はもともと空だったため、removeLast()で余分な要素を取り除く必要はない
-        
-        var dispProp: DispProp = DispProp(jikokuhyouFont: [], jikokuhyouVFont: "", diaEkimeiFont: "", diaJikokuFont: "", diaRessyaFont: "", commentFont: "", diaMojiColor: "", diaHaikeiColor: "", diaRessyaColor: "", diaJikuColor: "", ekimeiLength: "", jikokuhyouRessyaWidth: "")
-        var rosen: Rosen = Rosen(rosenmei: "", eki: eki, ressyasyubetsu: ressyasyubetsu, dia: dia, kitenJikoku: "", diagramDgrYZahyouKyoriDefault: "", comment: "")
-        
-        for lineRow in text.components(separatedBy: .newlines) {
-            let line: String = lineRow.trimmingCharacters(in: .whitespaces)
-            if line == "" {
-                continue
-            } else if line.contains("=") {
-                var keyAndValue: [String] = line.components(separatedBy: "=")
-                let key: String = keyAndValue.removeFirst()
-                let value: String = keyAndValue.joined(separator: "=")
-                switch key {
-                case "Rosenmei":
-                    rosen.rosenmei = value
-                case "KitenJikoku":
-                    rosen.kitenJikoku = value
-                case "DiagramDgrYZahyouKyoriDefault":
-                    rosen.diagramDgrYZahyouKyoriDefault = value
-                case "Comment":
-                    rosen.comment = value
-                case "JikokuhyouFont":
-                    dispProp.jikokuhyouFont.append(value) //この要素は配列で定義されているのでappend()を用いる
-                case "JikokuhyouVFont":
-                    dispProp.jikokuhyouVFont = value
-                case "DiaEkimeiFont":
-                    dispProp.diaEkimeiFont = value
-                case "DiaJikokuFont":
-                    dispProp.diaJikokuFont = value
-                case "DiaRessyaFont":
-                    dispProp.diaRessyaFont = value
-                case "CommentFont":
-                    dispProp.commentFont = value
-                case "DiaMojiColor":
-                    dispProp.diaMojiColor = value
-                case "DiaHaikeiColor":
-                    dispProp.diaHaikeiColor = value
-                case "DiaRessyaColor":
-                    dispProp.diaRessyaColor = value
-                case "DiaJikuColor":
-                    dispProp.diaJikuColor = value
-                case "EkimeiLength":
-                    dispProp.ekimeiLength = value
-                case "JikokuhyouRessyaWidth":
-                    dispProp.jikokuhyouRessyaWidth = value
-                default:
-                    break
-                }
-            }
-        }
-        
-        var oudData: OudData = OudData(fileType: "", rosen: rosen, dispProp: dispProp, fileTypeAppComment: "")
-        
-        for lineRow in text.components(separatedBy: .newlines) {
-            let line: String = lineRow.trimmingCharacters(in: .whitespaces)
-            if line == "" {
-                continue
-            } else if line.contains("=") {
-                var keyAndValue: [String] = line.components(separatedBy: "=")
-                let key: String = keyAndValue.removeFirst()
-                let value: String = keyAndValue.joined(separator: "=")
-                switch key {
-                case "FileType":
-                    oudData.fileType = value
-                case "FileTypeAppComment":
-                    oudData.fileTypeAppComment = value //ここは各Appが名付ける要素
-                default:
-                    break
-                }
-            }
-        }
-        
         return oudData
+
+        func resetProcessingDiaState() {
+            if isRessya {
+                isRessya = false
+            } else {
+                processingHoukouState = .none
+            }
+        }
+
+        func handleScopeEntry(line: String) {
+            switch line {
+            case "Kudari.":
+                processingHoukouState = .kudari //Kudari.の処理中であることを示すBool
+            case "Nobori.":
+                processingHoukouState = .nobori
+            case "Ressya.":
+                isRessya = true
+                if var diaTarget = oudData.rosen.dia.lastElement {
+                    if case .kudari = processingHoukouState {
+                        //空の要素をひとつ追加
+                        diaTarget.kudari.ressya.append( Ressya(houkou: "", syubetsu: 0, ressyabangou: "", ressyamei: "", gousuu: "", ekiJikoku: [], bikou: "") )
+                        oudData.rosen.dia.lastElement = diaTarget
+                    }
+                    if case .nobori = processingHoukouState {
+                        diaTarget.nobori.ressya.append( Ressya(houkou: "", syubetsu: 0, ressyabangou: "", ressyamei: "", gousuu: "", ekiJikoku: [], bikou: "") )
+                        oudData.rosen.dia.lastElement = diaTarget
+                    }
+                }
+            case "Eki.":
+                oudData.rosen.eki.append( Eki(ekimei: "", ekijikokukeisiki: .hatsu, ekikibo: .ippan, kyoukaisen: "", diagramRessyajouhouHyoujiKudari: "", diagramRessyajouhouHyoujiNobori: "") )
+            case "Ressyasyubetsu.":
+                oudData.rosen.ressyasyubetsu.append( Ressyasyubetsu(syubetsumei: "", ryakusyou: "", jikokuhyouMojiColor: "", jikokuhyouFontIndex: "", diagramSenColor: "", diagramSenStyle: .jissen, diagramSenIsBold: "", stopMarkDrawType: "") )
+            case "Dia.":
+                oudData.rosen.dia.append( Dia(diaName: "", kudari: Kudari(ressya: []), nobori: Nobori(ressya: [])) )
+            default:
+                break
+            }
+            return
+        }
+
+        func setValueFromKey(line: String) {
+            var keyAndValue: [String] = line.components(separatedBy: "=")
+            let key: String = keyAndValue.removeFirst() //イコールの左側
+            let value: String = keyAndValue.joined(separator: "=") //イコールの右側
+            updateElement()
+            return
+
+            func updateElement() {
+                if case .kudari = processingHoukouState, var kudariRessyaTarget = oudData.rosen.dia.lastElement?.kudari.ressya.lastElement {
+                    updateRessya(in: &kudariRessyaTarget, withKey: key, value: value)
+                    oudData.rosen.dia.lastElement?.kudari.ressya.lastElement = kudariRessyaTarget
+                } else if case .nobori = processingHoukouState, var noboriRessyaTarget = oudData.rosen.dia.lastElement?.nobori.ressya.lastElement {
+                    updateRessya(in: &noboriRessyaTarget, withKey: key, value: value)
+                    oudData.rosen.dia.lastElement?.nobori.ressya.lastElement = noboriRessyaTarget
+                }
+                if var ekiTarget = oudData.rosen.eki.lastElement {
+                    updateEki(in: &ekiTarget, withKey: key, value: value)
+                    oudData.rosen.eki.lastElement = ekiTarget
+                }
+                if var ressyasyubetsuTarget = oudData.rosen.ressyasyubetsu.lastElement {
+                    updateRessyasyubetsu(in: &ressyasyubetsuTarget, withKey: key, value: value)
+                    oudData.rosen.ressyasyubetsu.lastElement = ressyasyubetsuTarget
+                }
+                if var diaTarget = oudData.rosen.dia.lastElement {
+                    updateDia(in: &diaTarget, withKey: key, value: value)
+                    oudData.rosen.dia.lastElement = diaTarget
+                }
+                updateRosen(key: key, value: value)
+                updateDispProp(key: key, value: value)
+                updateOudData(key: key, value: value)
+                return
+
+                func updateRessya(in ressya: inout Ressya, withKey key: String, value: String) {
+                    switch key {
+                    case "Houkou":
+                        ressya.houkou = value
+                    case "Syubetsu":
+                        if let valueInt = Int(value) {
+                            ressya.syubetsu = valueInt
+                        }
+                    case "Ressyabangou":
+                        ressya.ressyabangou = value
+                    case "Ressyamei":
+                        ressya.ressyamei = value
+                    case "Gousuu":
+                        ressya.gousuu = value
+                    case "EkiJikoku":
+                        ressya.ekiJikoku = EkiJikoku.parse(value) //String -> [String]に変換して代入
+                    case "Bikou":
+                        ressya.bikou = value
+                    default:
+                        break
+                    }
+                }
+
+                func updateEki(in eki: inout Eki, withKey key: String, value: String) {
+                    switch key {
+                    case "Ekimei":
+                        eki.ekimei = value
+                    case "Ekijikokukeisiki":
+                        switch value {
+                        case let jikokukeisiki:
+                            eki.ekijikokukeisiki = Ekijikokukeisiki(rawValue: jikokukeisiki) ?? .hatsu
+                        }
+                    case "Ekikibo":
+                        switch value {
+                        case let kibo:
+                            eki.ekikibo = Ekikibo(rawValue: kibo) ?? .ippan
+                        }
+                    case "Kyoukaisen":
+                        eki.kyoukaisen = value
+                    case "DiagramRessyajouhouHyoujiKudari":
+                        eki.diagramRessyajouhouHyoujiKudari = value
+                    case "DiagramRessyajouhouHyoujiNobori":
+                        eki.diagramRessyajouhouHyoujiNobori = value
+                    default:
+                        break
+                    }
+                }
+
+                func updateRessyasyubetsu(in ressyasyubetsu: inout Ressyasyubetsu, withKey key: String, value: String) {
+                    switch key {
+                    case "Syubetsumei":
+                        ressyasyubetsu.syubetsumei = value
+                    case "Ryakusyou":
+                        ressyasyubetsu.ryakusyou = value
+                    case "JikokuhyouMojiColor":
+                        ressyasyubetsu.jikokuhyouMojiColor = value
+                    case "JikokuhyouFontIndex":
+                        ressyasyubetsu.jikokuhyouFontIndex = value
+                    case "DiagramSenColor":
+                        ressyasyubetsu.diagramSenColor = value
+                    case "DiagramSenStyle":
+                        switch value {
+                        case let senStyle:
+                            ressyasyubetsu.diagramSenStyle = DiagramSenStyle(rawValue: senStyle) ?? .jissen
+                        }
+                    case "DiagramSenIsBold":
+                        ressyasyubetsu.diagramSenIsBold = value
+                    case "StopMarkDrawType":
+                        ressyasyubetsu.stopMarkDrawType = value
+                    default:
+                        break
+                    }
+                }
+
+                func updateDia(in dia: inout Dia, withKey key: String, value: String) {
+                    switch key {
+                    case "DiaName":
+                        dia.diaName = value
+                    default:
+                        break
+                    }
+                }
+
+                func updateRosen(key: String, value: String) {
+                    switch key {
+                    case "Rosenmei":
+                        oudData.rosen.rosenmei = value
+                    case "KitenJikoku":
+                        oudData.rosen.kitenJikoku = value
+                    case "DiagramDgrYZahyouKyoriDefault":
+                        oudData.rosen.diagramDgrYZahyouKyoriDefault = value
+                    case "Comment":
+                        oudData.rosen.comment = value
+                    default:
+                        break
+                    }
+                }
+
+                func updateDispProp(key: String, value: String) {
+                    switch key {
+                    case "JikokuhyouFont":
+                        oudData.dispProp.jikokuhyouFont.append(value) //この要素は配列で定義されているのでappend()を用いる
+                    case "JikokuhyouVFont":
+                        oudData.dispProp.jikokuhyouVFont = value
+                    case "DiaEkimeiFont":
+                        oudData.dispProp.diaEkimeiFont = value
+                    case "DiaJikokuFont":
+                        oudData.dispProp.diaJikokuFont = value
+                    case "DiaRessyaFont":
+                        oudData.dispProp.diaRessyaFont = value
+                    case "CommentFont":
+                        oudData.dispProp.commentFont = value
+                    case "DiaMojiColor":
+                        oudData.dispProp.diaMojiColor = value
+                    case "DiaHaikeiColor":
+                        oudData.dispProp.diaHaikeiColor = value
+                    case "DiaRessyaColor":
+                        oudData.dispProp.diaRessyaColor = value
+                    case "DiaJikuColor":
+                        oudData.dispProp.diaJikuColor = value
+                    case "EkimeiLength":
+                        oudData.dispProp.ekimeiLength = value
+                    case "JikokuhyouRessyaWidth":
+                        oudData.dispProp.jikokuhyouRessyaWidth = value
+                    default:
+                        break
+                    }
+                }
+
+                func updateOudData(key: String, value: String) {
+                    switch key {
+                    case "FileType":
+                        oudData.fileType = value
+                    case "FileTypeAppComment":
+                        oudData.fileTypeAppComment = value //ここは各Appが名付ける要素
+                    default:
+                        break
+                    }
+                }
+            }
+        }
     }
-    
-    //構造体→文字列
+
+    //MARK: - 構造体→文字列
     static func stringify(_ data: OudData) -> String {
         var result: String = ""
         result.append("FileType=\(data.fileType)\n") //OudDataの情報を順番に追加していく
-        result.append("Rosen.\n")
-        result.append("Rosenmei=\(data.rosen.rosenmei)\n")
-        for i in 0..<data.rosen.eki.count {
-            result.append("Eki.\n")
-            result.append("Ekimei=\(data.rosen.eki[i].ekimei)\n")
-            result.append("Ekijikokukeisiki=\(data.rosen.eki[i].ekijikokukeisiki)\n")
-            result.append("Ekikibo=\(data.rosen.eki[i].ekikibo)\n")
-            if !data.rosen.eki[i].kyoukaisen.isEmpty {
-                result.append("Kyoukaisen=\(data.rosen.eki[i].kyoukaisen)\n")
-            }
-            if !data.rosen.eki[i].diagramRessyajouhouHyoujiKudari.isEmpty {
-                result.append("DiagramRessyajouhouHyoujiKudari=\(data.rosen.eki[i].diagramRessyajouhouHyoujiKudari)\n")
-            }
-            if !data.rosen.eki[i].diagramRessyajouhouHyoujiNobori.isEmpty {
-                result.append("DiagramRessyajouhouHyoujiNobori=\(data.rosen.eki[i].diagramRessyajouhouHyoujiNobori)\n")
-            }
-            result.append(".\n") //Eki. End
-        }
-        for i in 0..<data.rosen.ressyasyubetsu.count {
-            result.append("Ressyasyubetsu.\n")
-            result.append("Syubetsumei=\(data.rosen.ressyasyubetsu[i].syubetsumei)\n")
-            result.append("Ryakusyou=\(data.rosen.ressyasyubetsu[i].ryakusyou)\n")
-            result.append("JikokuhyouMojiColor=\(data.rosen.ressyasyubetsu[i].jikokuhyouMojiColor)\n")
-            result.append("JikokuhyouFontIndex=\(data.rosen.ressyasyubetsu[i].jikokuhyouFontIndex)\n")
-            result.append("DiagramSenColor=\(data.rosen.ressyasyubetsu[i].diagramSenColor)\n")
-            result.append("DiagramSenStyle=\(data.rosen.ressyasyubetsu[i].diagramSenStyle)\n")
-            if !data.rosen.ressyasyubetsu[i].diagramSenIsBold.isEmpty {
-                result.append("DiagramSenIsBold=\(data.rosen.ressyasyubetsu[i].diagramSenIsBold)\n")
-            }
-            if !data.rosen.ressyasyubetsu[i].stopMarkDrawType.isEmpty {
-                result.append("StopMarkDrawType=\(data.rosen.ressyasyubetsu[i].stopMarkDrawType)\n")
-            }
-            result.append(".\n") //Ressyasyubetsu. End
-        }
-        for i in 0..<data.rosen.dia.count {
-            result.append("Dia.\n")
-            result.append("DiaName=\(data.rosen.dia[i].diaName)\n")
-            result.append("Kudari.\n")
-            for j in 0..<data.rosen.dia[i].kudari.ressya.count {
-                result.append("Ressya.\n")
-                result.append("Houkou=\(data.rosen.dia[i].kudari.ressya[j].houkou)\n")
-                result.append("Syubetsu=\(data.rosen.dia[i].kudari.ressya[j].syubetsu)\n")
-                if !data.rosen.dia[i].kudari.ressya[j].ressyabangou.isEmpty {
-                    result.append("Ressyabangou=\(data.rosen.dia[i].kudari.ressya[j].ressyabangou)\n")
-                }
-                if !data.rosen.dia[i].kudari.ressya[j].ressyamei.isEmpty {
-                    result.append("Ressyamei=\(data.rosen.dia[i].kudari.ressya[j].ressyamei)\n")
-                }
-                if !data.rosen.dia[i].kudari.ressya[j].gousuu.isEmpty {
-                    result.append("Gousuu=\(data.rosen.dia[i].kudari.ressya[j].gousuu)\n")
-                }
-                result.append("EkiJikoku=\(EkiJikoku.stringify(data.rosen.dia[i].kudari.ressya[j].ekiJikoku))\n") //[String] -> Stringに変換して代入
-                if !data.rosen.dia[i].kudari.ressya[j].bikou.isEmpty {
-                    result.append("Bikou=\(data.rosen.dia[i].kudari.ressya[j].bikou)\n")
-                }
-                result.append(".\n") //Ressya. End
-            }
-            result.append(".\n") //Kudari. End
-            result.append("Nobori.\n")
-            for j in 0..<data.rosen.dia[i].nobori.ressya.count {
-                result.append("Ressya.\n")
-                result.append("Houkou=\(data.rosen.dia[i].nobori.ressya[j].houkou)\n")
-                result.append("Syubetsu=\(data.rosen.dia[i].nobori.ressya[j].syubetsu)\n")
-                if !data.rosen.dia[i].nobori.ressya[j].ressyabangou.isEmpty {
-                    result.append("Ressyabangou=\(data.rosen.dia[i].nobori.ressya[j].ressyabangou)\n")
-                }
-                if !data.rosen.dia[i].nobori.ressya[j].ressyamei.isEmpty {
-                    result.append("Ressyamei=\(data.rosen.dia[i].nobori.ressya[j].ressyamei)\n")
-                }
-                if !data.rosen.dia[i].nobori.ressya[j].gousuu.isEmpty {
-                    result.append("Gousuu=\(data.rosen.dia[i].nobori.ressya[j].gousuu)\n")
-                }
-                result.append("EkiJikoku=\(EkiJikoku.stringify(data.rosen.dia[i].nobori.ressya[j].ekiJikoku))\n") //[String] -> Stringに変換して代入
-                if !data.rosen.dia[i].nobori.ressya[j].bikou.isEmpty {
-                    result.append("Bikou=\(data.rosen.dia[i].nobori.ressya[j].bikou)\n")
-                }
-                result.append(".\n") //Ressya. End
-            }
-            result.append(".\n") //Nobori. End
-            result.append(".\n") //Dia. End
-        }
-        result.append("KitenJikoku=\(data.rosen.kitenJikoku)\n")
-        result.append("DiagramDgrYZahyouKyoriDefault=\(data.rosen.diagramDgrYZahyouKyoriDefault)\n")
-        result.append("Comment=\(data.rosen.comment)\n")
-        result.append(".\n") //Rosen End
-        result.append("DispProp.\n")
-        for i in 0..<data.dispProp.jikokuhyouFont.count {
-            result.append("JikokuhyouFont=\(data.dispProp.jikokuhyouFont[i])\n")
-        }
-        result.append("JikokuhyouVFont=\(data.dispProp.jikokuhyouVFont)\n")
-        result.append("DiaEkimeiFont=\(data.dispProp.diaEkimeiFont)\n")
-        result.append("DiaJikokuFont=\(data.dispProp.diaJikokuFont)\n")
-        result.append("DiaRessyaFont=\(data.dispProp.diaRessyaFont)\n")
-        result.append("CommentFont=\(data.dispProp.commentFont)\n")
-        result.append("DiaMojiColor=\(data.dispProp.diaMojiColor)\n")
-        result.append("DiaHaikeiColor=\(data.dispProp.diaHaikeiColor)\n")
-        result.append("DiaRessyaColor=\(data.dispProp.diaRessyaColor)\n")
-        result.append("DiaJikuColor=\(data.dispProp.diaJikuColor)\n")
-        result.append("EkimeiLength=\(data.dispProp.ekimeiLength)\n")
-        result.append("JikokuhyouRessyaWidth=\(data.dispProp.jikokuhyouRessyaWidth)\n")
-        result.append(".\n") //DispProp End
-        result.append("FileTypeAppComment=" + "Diagram Editor Ver. Aplha 1.0.0") //ここは各Appが名付ける要素
-        
+        stringifyRosen(rosen: data.rosen)
+        stringifyDispProp(dispProp: data.dispProp)
+        result.append("FileTypeAppComment=" + "Diagram Editor Ver. Alpha 1.0.0") //ここは各Appが名付ける要素
         return result
+
+        func stringifyRosen(rosen: Rosen) {
+            result.append("Rosen.\n")
+            result.append("Rosenmei=\(rosen.rosenmei)\n")
+            stringifyEki(ekiArr: rosen.eki)
+            stringifyRessyasyubetsu(ressyasyubetsuArr: rosen.ressyasyubetsu)
+            stringifyDia(diaArr: rosen.dia)
+            result.append("KitenJikoku=\(rosen.kitenJikoku)\n")
+            result.append("DiagramDgrYZahyouKyoriDefault=\(rosen.diagramDgrYZahyouKyoriDefault)\n")
+            result.append("Comment=\(rosen.comment)\n")
+            result.append(".\n") //Rosen End
+            return
+
+            func stringifyEki(ekiArr: [Eki]) {
+                for eki in ekiArr {
+                    result.append("Eki.\n")
+                    result.append("Ekimei=\(eki.ekimei)\n")
+                    result.append("Ekijikokukeisiki=\(eki.ekijikokukeisiki.rawValue)\n")
+                    result.append("Ekikibo=\(eki.ekikibo.rawValue)\n")
+                    if !eki.kyoukaisen.isEmpty {
+                        result.append("Kyoukaisen=\(eki.kyoukaisen)\n")
+                    }
+                    if !eki.diagramRessyajouhouHyoujiKudari.isEmpty {
+                        result.append("DiagramRessyajouhouHyoujiKudari=\(eki.diagramRessyajouhouHyoujiKudari)\n")
+                    }
+                    if !eki.diagramRessyajouhouHyoujiNobori.isEmpty {
+                        result.append("DiagramRessyajouhouHyoujiNobori=\(eki.diagramRessyajouhouHyoujiNobori)\n")
+                    }
+                    result.append(".\n") //Eki. End
+                }
+                return
+            }
+
+            func stringifyRessyasyubetsu(ressyasyubetsuArr: [Ressyasyubetsu]) {
+                for ressyasyubetsu in ressyasyubetsuArr {
+                    result.append("Ressyasyubetsu.\n")
+                    result.append("Syubetsumei=\(ressyasyubetsu.syubetsumei)\n")
+                    result.append("Ryakusyou=\(ressyasyubetsu.ryakusyou)\n")
+                    result.append("JikokuhyouMojiColor=\(ressyasyubetsu.jikokuhyouMojiColor)\n")
+                    result.append("JikokuhyouFontIndex=\(ressyasyubetsu.jikokuhyouFontIndex)\n")
+                    result.append("DiagramSenColor=\(ressyasyubetsu.diagramSenColor)\n")
+                    result.append("DiagramSenStyle=\(ressyasyubetsu.diagramSenStyle.rawValue)\n")
+                    if !ressyasyubetsu.diagramSenIsBold.isEmpty {
+                        result.append("DiagramSenIsBold=\(ressyasyubetsu.diagramSenIsBold)\n")
+                    }
+                    if !ressyasyubetsu.stopMarkDrawType.isEmpty {
+                        result.append("StopMarkDrawType=\(ressyasyubetsu.stopMarkDrawType)\n")
+                    }
+                    result.append(".\n") //Ressyasyubetsu. End
+                }
+                return
+            }
+
+            func stringifyDia(diaArr: [Dia]) {
+                for dia in diaArr {
+                    result.append("Dia.\n")
+                    result.append("DiaName=\(dia.diaName)\n")
+                    result.append("Kudari.\n")
+                    stringifyRessya(ressyaArr: dia.kudari.ressya)
+                    result.append(".\n") //Kudari. End
+                    result.append("Nobori.\n")
+                    stringifyRessya(ressyaArr: dia.nobori.ressya)
+                    result.append(".\n") //Nobori. End
+                    result.append(".\n") //Dia. End
+                }
+                return
+
+                func stringifyRessya(ressyaArr: [Ressya]) {
+                    for ressya in ressyaArr {
+                        result.append("Ressya.\n")
+                        if !ressya.houkou.isEmpty {
+                            result.append("Houkou=\(ressya.houkou)\n")
+                            result.append("Syubetsu=\(ressya.syubetsu)\n")
+                        }
+                        if !ressya.ressyabangou.isEmpty {
+                            result.append("Ressyabangou=\(ressya.ressyabangou)\n")
+                        }
+                        if !ressya.ressyamei.isEmpty {
+                            result.append("Ressyamei=\(ressya.ressyamei)\n")
+                        }
+                        if !ressya.gousuu.isEmpty {
+                            result.append("Gousuu=\(ressya.gousuu)\n")
+                        }
+                        if !ressya.ekiJikoku.isEmpty {
+                            result.append("EkiJikoku=\( EkiJikoku.stringify(ressya.ekiJikoku) )\n")
+                        }
+                        if !ressya.bikou.isEmpty {
+                            result.append("Bikou=\(ressya.bikou)\n")
+                        }
+                        result.append(".\n") //Ressya. End
+                    }
+                    return
+                }
+            }
+        }
+
+        func stringifyDispProp(dispProp: DispProp) {
+            result.append("DispProp.\n")
+            for jikokuhyouFont in dispProp.jikokuhyouFont {
+                result.append("JikokuhyouFont=\(jikokuhyouFont)\n")
+            }
+            result.append("JikokuhyouVFont=\(dispProp.jikokuhyouVFont)\n")
+            result.append("DiaEkimeiFont=\(dispProp.diaEkimeiFont)\n")
+            result.append("DiaJikokuFont=\(dispProp.diaJikokuFont)\n")
+            result.append("DiaRessyaFont=\(dispProp.diaRessyaFont)\n")
+            result.append("CommentFont=\(dispProp.commentFont)\n")
+            result.append("DiaMojiColor=\(dispProp.diaMojiColor)\n")
+            result.append("DiaHaikeiColor=\(dispProp.diaHaikeiColor)\n")
+            result.append("DiaRessyaColor=\(dispProp.diaRessyaColor)\n")
+            result.append("DiaJikuColor=\(dispProp.diaJikuColor)\n")
+            result.append("EkimeiLength=\(dispProp.ekimeiLength)\n")
+            result.append("JikokuhyouRessyaWidth=\(dispProp.jikokuhyouRessyaWidth)\n")
+            result.append(".\n") //DispProp End
+            return
+        }
     }
 }
 
-//EkiJikokuのパース/文字列化
+//MARK: - EkiJikokuのパース/文字列化
 class EkiJikoku {
-    static func parse(_ text: String) -> Array<String> {
-        var result: Array<String> = []
-        result = text.components(separatedBy: ",")
-        return result
+    static func parse(_ text: String) -> [String] {
+        return text.components(separatedBy: ",")
     }
-    
-    static func stringify(_ array: Array<String>) -> String {
-        var result: String = ""
-        for i in 0 ..< array.count {
-            result += array[i] + ","
-        }
-        result.removeLast()
-        return result
+
+    static func stringify(_ jikokuArr: [String]) -> String {
+        return jikokuArr.joined(separator: ",")
     }
 }
 
-//構造体の定義
-struct OudData {
+//extension
+extension Array {
+    var lastElement: Element? {
+        get {
+            return self.last
+        }
+        set {
+            if let newValue = newValue {
+                self[self.endIndex - 1] = newValue
+            }
+        }
+    }
+}
+
+//MARK: - 構造体の定義
+struct OudData: Equatable {
     var fileType: String
-    let rosen: Rosen
-    let dispProp: DispProp
+    var rosen: Rosen
+    var dispProp: DispProp
     var fileTypeAppComment: String
 }
 
-struct DispProp { //インデント数: 1
+struct Rosen: Equatable { //インデント数: 1
+    var rosenmei: String
+    var eki: [Eki]
+    var ressyasyubetsu: [Ressyasyubetsu]
+    var dia: [Dia]
+    var kitenJikoku: String
+    var diagramDgrYZahyouKyoriDefault: String
+    var comment: String
+}
+
+struct DispProp: Equatable { //インデント数: 1
     var jikokuhyouFont: [String]
     var jikokuhyouVFont: String
     var diaEkimeiFont: String
@@ -548,56 +563,66 @@ struct DispProp { //インデント数: 1
     var jikokuhyouRessyaWidth: String
 }
 
-struct Rosen { //インデント数: 1
-    var rosenmei: String
-    let eki: [Eki]
-    let ressyasyubetsu: [Ressyasyubetsu]
-    let dia: [Dia]
-    var kitenJikoku: String
-    var diagramDgrYZahyouKyoriDefault: String
-    var comment: String
-}
-
-struct Dia { //インデント数: 2
-    var diaName: String
-    let kudari: Kudari
-    let nobori: Nobori
-}
-
-struct Ressyasyubetsu { //インデント数: 2
-    var syubetsumei: String
-    var ryakusyou: String
-    var jikokuhyouMojiColor: String
-    var jikokuhyouFontIndex: String
-    var diagramSenColor: String
-    var diagramSenStyle: String
-    var diagramSenIsBold: String //任意
-    var stopMarkDrawType: String //任意
-}
-
-struct Eki { //インデント数: 2
+struct Eki: Hashable, Equatable { //インデント数: 2
     var ekimei: String
-    var ekijikokukeisiki: String
-    var ekikibo: String
+    var ekijikokukeisiki: Ekijikokukeisiki
+    var ekikibo: Ekikibo
     var kyoukaisen: String //任意
     var diagramRessyajouhouHyoujiKudari: String //任意
     var diagramRessyajouhouHyoujiNobori: String //任意
 }
 
-struct Kudari { //インデント数: 3
-    let ressya: [Ressya]
+struct Ressyasyubetsu: Equatable { //インデント数: 2
+    var syubetsumei: String
+    var ryakusyou: String
+    var jikokuhyouMojiColor: String
+    var jikokuhyouFontIndex: String
+    var diagramSenColor: String
+    var diagramSenStyle: DiagramSenStyle
+    var diagramSenIsBold: String //任意
+    var stopMarkDrawType: String //任意
 }
 
-struct Nobori { //インデント数: 3
-    let ressya: [Ressya]
+struct Dia: Equatable { //インデント数: 2
+    var diaName: String
+    var kudari: Kudari
+    var nobori: Nobori
 }
 
-struct Ressya { //インデント数: 4
+struct Kudari: Equatable { //インデント数: 3
+    var ressya: [Ressya]
+}
+
+struct Nobori: Equatable { //インデント数: 3
+    var ressya: [Ressya]
+}
+
+struct Ressya: Hashable, Equatable { //インデント数: 4
     var houkou: String
-    var syubetsu: String
+    var syubetsu: Int
     var ressyabangou: String //任意
     var ressyamei: String //任意
     var gousuu: String //任意
     var ekiJikoku: [String]
     var bikou: String //任意
+}
+
+//MARK: - enum
+enum Ekijikokukeisiki: String {
+    case hatsu = "Jikokukeisiki_Hatsu"
+    case hatsuchaku = "Jikokukeisiki_Hatsuchaku"
+    case kudariChaku = "Jikokukeisiki_KudariChaku"
+    case noboriChaku = "Jikokukeisiki_NoboriChaku"
+}
+
+enum Ekikibo: String {
+    case ippan = "Ekikibo_Ippan"
+    case syuyou = "Ekikibo_Syuyou"
+}
+
+enum DiagramSenStyle: String {
+    case jissen = "SenStyle_Jissen"
+    case hasen = "SenStyle_Hasen"
+    case tensen = "SenStyle_Tensen"
+    case ittensasen = "SenStyle_Ittensasen"
 }
